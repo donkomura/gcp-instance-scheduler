@@ -32,6 +32,12 @@ func getFieldNameList(e interface{}) []string {
 	return fieldName
 }
 
+// return field value greped by name
+func getFieldValue(e interface{}, field string) interface{} {
+	values := reflect.Indirect(reflect.ValueOf(e))
+	return values.FieldByName(field).Interface()
+}
+
 func createHeader(pad map[string]int, project string) string {
 	text := fmt.Sprintf("[Project: %s] Instances Shutdown Report <%s>\n", project, getDate())
 
@@ -102,19 +108,17 @@ func (n *slackNotifier) PostReport(report *report.ResourceCountReport) (string, 
 
 func (n *slackNotifier) PostReportThread(parentTS string, report *report.DetailReport) error {
 	// align to left
-	var pad int = -25
+	pad := -25
 
 	text := createHeaderDetail(report.InstanceType, pad)
 
-	// fiels values of model.ShutdownReport
-	resultVal := reflect.Indirect(reflect.ValueOf(report))
 	// field names of model.ShutdownReport
 	statusType := getFieldNameList(*report)
 
 	for i := 1; i < len(statusType); i++ {
 		status := statusType[i]
-		// pick up instance name from field value
-		for _, resource := range resultVal.FieldByName(status).Interface().([]string) {
+		// pick up instance value from field name
+		for _, resource := range getFieldValue(*report, status).([]string) {
 			text += fmt.Sprintf("%*s | %s\n", pad, status, resource)
 		}
 	}
